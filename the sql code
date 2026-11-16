@@ -1,0 +1,50 @@
+
+-- Write your MySQL query statement below
+
+WITH ordereddata AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY company
+            ORDER BY salary,id
+        ) AS rankordered,
+        COUNT(*) OVER (
+            PARTITION BY company
+        ) AS totalcount
+    FROM EMPLOYEE
+),
+
+evenorodd AS (
+    SELECT
+        *,
+        CASE
+            WHEN totalcount % 2 = 0 THEN 'Even'
+            ELSE 'Odd'
+        END AS method
+    FROM ordereddata
+),
+
+finalmedian AS (
+    -- Even number of employees: select the two middle rows
+    SELECT *
+    FROM evenorodd
+    WHERE method = 'Even'
+      AND (
+          rankordered = totalcount / 2
+          OR rankordered = totalcount / 2 + 1
+      )
+
+    UNION
+
+    -- Odd number of employees: select the middle row
+    SELECT *
+    FROM evenorodd
+    WHERE method = 'Odd'
+      AND rankordered = (totalcount + 1) / 2
+)
+
+SELECT
+    id,
+    company,
+    salary
+FROM finalmedian;
